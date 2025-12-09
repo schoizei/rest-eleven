@@ -27,4 +27,8 @@
     <ProjectReference Include="..\RestEleven.Shared\RestEleven.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="LinkerConfig.xml" />
+  </ItemGroup>
+
 </Project>
