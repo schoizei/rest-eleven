@@ -57,3 +57,13 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/personiobridge:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/personiobridge:${{ github.sha }}
+      - name: Build and push Client image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: RestEleven.Client/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/client:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/client:${{ github.sha }}
