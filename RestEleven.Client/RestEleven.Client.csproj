@@ -8,6 +8,9 @@
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WasmBuildNative>true</WasmBuildNative>
+    <!-- Suppress WASM0001: SQLite native varargs functions are not called at runtime -->
+    <!-- Suppress IL2037/IL2008: EF Core internal reflection issues with IL Linker in .NET 10 -->
+    <NoWarn>$(NoWarn);WASM0001;IL2037;IL2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
