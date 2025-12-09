@@ -5,7 +5,8 @@ WORKDIR /src
 COPY RestEleven.sln ./
 COPY RestEleven.Client/RestEleven.Client.csproj RestEleven.Client/
 COPY RestEleven.Shared/RestEleven.Shared.csproj RestEleven.Shared/
-RUN dotnet restore RestEleven.Client/RestEleven.Client.csproj
+RUN dotnet workload install wasm-tools --skip-manifest-update \
+	&& dotnet restore RestEleven.Client/RestEleven.Client.csproj
 
 COPY . .
 WORKDIR /src/RestEleven.Client
