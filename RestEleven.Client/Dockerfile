@@ -1,5 +1,9 @@
 # Build stage - publish Blazor WebAssembly assets
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+# Install Python (required by Emscripten for WASM native compilation)
+RUN apt-get update && apt-get install -y python3 && ln -s /usr/bin/python3 /usr/bin/python && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /src
 
 COPY RestEleven.sln ./
