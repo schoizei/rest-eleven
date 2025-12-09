@@ -2,4 +2,7 @@
   <assembly fullname="Microsoft.EntityFrameworkCore">
     <type fullname="Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions" preserve="all" />
   </assembly>
+  <assembly fullname="Microsoft.EntityFrameworkCore.Relational">
+    <type fullname="Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions" preserve="all" />
+  </assembly>
 </linker>
