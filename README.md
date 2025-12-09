@@ -21,27 +21,6 @@ Client (HTTP) ---------------------> PersonioBridge --REST--> Personio API
 - PowerShell 7+ (für das Setup-Skript)
 - Docker (optional für Container-Builds)
 
-## Projekt-Setup
-
-Alle CLI-Schritte sind im Skript `scripts/setup.ps1` automatisiert. Ausführen im Repo-Stamm:
-
-```powershell
-pwsh ./scripts/setup.ps1
-```
-
-Das Skript erzeugt (oder erzwingt mit `-Force`) exakt die folgenden Befehle:
-
-```bash
-dotnet new sln -n RestEleven
-dotnet new blazorwasm -n RestEleven.Client --pwa -f net10.0
-dotnet new classlib -n RestEleven.Shared -f net10.0
-dotnet new webapi -n RestEleven.PushServer -f net10.0 --use-controllers true
-dotnet new webapi -n RestEleven.PersonioBridge -f net10.0 --use-controllers true
-dotnet sln RestEleven.sln add RestEleven.Client/RestEleven.Client.csproj RestEleven.Shared/RestEleven.Shared.csproj RestEleven.PushServer/RestEleven.PushServer.csproj RestEleven.PersonioBridge/RestEleven.PersonioBridge.csproj tests/RestEleven.Tests/RestEleven.Tests.csproj
-dotnet add RestEleven.Client/RestEleven.Client.csproj reference ../RestEleven.Shared/RestEleven.Shared.csproj
-dotnet add RestEleven.PushServer/RestEleven.PushServer.csproj reference ../RestEleven.Shared/RestEleven.Shared.csproj
-dotnet add RestEleven.PersonioBridge/RestEleven.PersonioBridge.csproj reference ../RestEleven.Shared/RestEleven.Shared.csproj
-```
 
 ## Konfiguration
 
