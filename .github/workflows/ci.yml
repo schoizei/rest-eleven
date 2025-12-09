@@ -6,9 +6,16 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}/rest-eleven
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
@@ -23,7 +30,30 @@ jobs:
         run: dotnet build RestEleven.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test RestEleven.sln --configuration Release --no-build --collect:"XPlat Code Coverage"
-      - name: Build PushServer Docker image
-        run: docker build -t resteleven/pushserver -f RestEleven.PushServer/Dockerfile .
-      - name: Build PersonioBridge Docker image
-        run: docker build -t resteleven/personiobridge -f RestEleven.PersonioBridge/Dockerfile .
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push PushServer image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: RestEleven.PushServer/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/pushserver:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/pushserver:${{ github.sha }}
+      - name: Build and push PersonioBridge image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: RestEleven.PersonioBridge/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/personiobridge:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/personiobridge:${{ github.sha }}
