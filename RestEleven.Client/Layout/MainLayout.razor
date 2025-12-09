@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <aside class="rail">
+        <div class="brand">
+            <div class="logo">11</div>
+            <div>
+                <strong>RestEleven</strong>
+                <small>Stay rested.</small>
+            </div>
+        </div>
+        <NavMenu />
+    </aside>
+
+    <div class="workspace">
+        <header class="top-bar">
+            <div>
+                <p class="eyebrow">Heute</p>
+                <strong>@DateTime.Now.ToString("dddd, dd. MMM", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))</strong>
+            </div>
+            <span class="status-dot">PWA aktiv</span>
+        </header>
+        <main class="content">
+            @Body
+        </main>
+    </div>
+</div>

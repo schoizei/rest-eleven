@@ -1,0 +1,245 @@
+﻿@page "/"
+@inject ILocalDbService LocalDb
+@inject ILearningService LearningService
+@inject INotificationService NotificationService
+@inject IBackgroundSyncService BackgroundSync
+@inject ISettingsService SettingsService
+@inject IPersonioBridgeClient PersonioBridgeClient
+
+<PageTitle>RestEleven · Übersicht</PageTitle>
+
+<section class="hero-panel">
+	<div>
+		<p class="eyebrow">Nächster Reminder</p>
+		<h1>@nextReminderText</h1>
+		@if (suggestion is not null)
+		{
+			<p class="muted">Vorschlag: @suggestion.SuggestedStart.ToString("HH\\:mm") &ndash; @suggestion.SuggestedEnd.ToString("HH\\:mm") (@suggestion.Confidence.ToString("P0"))</p>
+			<span class="badge @(suggestion.RespectsRestConstraint ? "badge-ok" : "badge-warn")">
+				@(suggestion.RespectsRestConstraint ? "11h-Regel erfüllt" : "11h-Regel verletzt")
+			</span>
+		}
+		else
+		{
+			<p class="muted">Noch keine Muster - erfasse Einträge, um Prognosen zu erhalten.</p>
+		}
+	</div>
+	<button class="primary" @onclick="CreateEntryAsync" disabled="@isBusy">Jetzt eintragen</button>
+</section>
+
+<section class="grid">
+	<article class="card">
+		<header>
+			<h2>Lokale Zeiteinträge</h2>
+			<small>@entries.Count Einträge</small>
+		</header>
+		@if (isBusy && entries.Count == 0)
+		{
+			<p>Lade Daten…</p>
+		}
+		else if (entries.Count == 0)
+		{
+			<p>Noch keine Einträge vorhanden.</p>
+		}
+		else
+		{
+			<table class="data-table">
+				<thead>
+					<tr>
+						<th>Datum</th>
+						<th>Start</th>
+						<th>Ende</th>
+						<th>Pause</th>
+						<th>Kommentar</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var entry in entries)
+					{
+						<tr>
+							<td>@entry.Date.ToString("ddd, dd.MM.")</td>
+							<td>@entry.Start.ToString("HH\\:mm")</td>
+							<td>@entry.End.ToString("HH\\:mm")</td>
+							<td>@entry.BreakMinutes min</td>
+							<td>@(entry.Comment ?? "-")</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</article>
+
+	<article class="card">
+		<header>
+			<h2>Lernstatus</h2>
+		</header>
+		<ul class="stat-list">
+			<li>
+				<span>Samples</span>
+				<strong>@patterns.Sum(p => p.Samples)</strong>
+			</li>
+			<li>
+				<span>Verlässlichkeit</span>
+				<strong>@((suggestion?.Confidence ?? 0).ToString("P0"))</strong>
+			</li>
+			<li>
+				<span>Letzter Sync</span>
+				<strong>@lastSyncLabel</strong>
+			</li>
+		</ul>
+	</article>
+</section>
+
+@if (!string.IsNullOrEmpty(error))
+{
+	<div class="alert alert-danger">@error</div>
+}
+
+@code {
+	private readonly List<AttendanceEntry> entries = new();
+	private readonly List<LearnedPattern> patterns = new();
+	private LearningSuggestion? suggestion;
+	private SettingsState? settings;
+	private bool isBusy;
+	private string nextReminderText = "-";
+	private string lastSyncLabel = "-";
+	private string? error;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LocalDb.InitializeAsync();
+		await BackgroundSync.RegisterAsync("resteleven-daily-reminder");
+		settings = await SettingsService.GetAsync();
+		await LoadEntriesAsync();
+		await NotificationService.ScheduleReminderAsync(settings.Reminder, suggestion);
+		await NotificationService.EnsurePermissionAsync();
+		nextReminderText = BuildReminderLabel();
+	}
+
+	private async Task LoadEntriesAsync()
+	{
+		try
+		{
+			isBusy = true;
+			var since = DateOnly.FromDateTime(DateTime.Today.AddDays(-14));
+			var data = await LocalDb.GetEntriesAsync(since);
+			entries.Clear();
+			entries.AddRange(data);
+
+			foreach (var entry in entries.OrderBy(e => e.Date).ThenBy(e => e.Start))
+			{
+				LearningService.UpdatePattern(entry, settings?.Alpha ?? 0.3);
+			}
+
+			RebuildPatternSnapshot();
+			suggestion = LearningService.BuildSuggestion(DateOnly.FromDateTime(DateTime.Today), entries, settings?.Alpha ?? 0.3);
+			lastSyncLabel = DateTime.Now.ToString("HH:mm");
+		}
+		catch (Exception ex)
+		{
+			error = ex.Message;
+		}
+		finally
+		{
+			isBusy = false;
+		}
+	}
+
+	private async Task CreateEntryAsync()
+	{
+		if (isBusy)
+		{
+			return;
+		}
+
+		try
+		{
+			isBusy = true;
+			var today = DateOnly.FromDateTime(DateTime.Today);
+			var start = suggestion?.SuggestedStart ?? TimeOnly.FromDateTime(DateTime.Now.AddHours(-8));
+			var end = suggestion?.SuggestedEnd ?? TimeOnly.FromDateTime(DateTime.Now);
+
+			var entry = new AttendanceEntry
+			{
+				Date = today,
+				Start = start,
+				End = end,
+				BreakMinutes = SuggestBreakMinutes(start, end),
+				Comment = "Erfasst via RestEleven"
+			};
+
+			await LocalDb.AddAsync(entry);
+			entries.Insert(0, entry);
+			LearningService.UpdatePattern(entry, settings?.Alpha ?? 0.3);
+			RebuildPatternSnapshot();
+			suggestion = LearningService.BuildSuggestion(today, entries, settings?.Alpha ?? 0.3);
+
+			if (settings?.AutoSubmitToPersonio == true)
+			{
+				var dto = new CreateAttendanceDto
+				{
+					Date = entry.Date,
+					Start = entry.Start,
+					End = entry.End,
+					BreakMinutes = entry.BreakMinutes,
+					Comment = entry.Comment,
+					AutoSubmitToPersonio = true
+				};
+
+				await PersonioBridgeClient.CreateAttendanceAsync(dto);
+			}
+
+			await NotificationService.ShowLocalNotificationAsync("Zeiteintrag gespeichert", "Der aktuelle Tag wurde gesichert.");
+			nextReminderText = BuildReminderLabel();
+		}
+		catch (Exception ex)
+		{
+			error = ex.Message;
+		}
+		finally
+		{
+			isBusy = false;
+		}
+	}
+
+	private string BuildReminderLabel()
+	{
+		if (settings is null)
+		{
+			return "-";
+		}
+
+		var reminderTime = settings.Reminder.PreferredTime.AddMinutes(-settings.Reminder.LeadMinutes);
+		var confidence = suggestion?.Confidence ?? 0;
+		return $"{reminderTime:HH\\:mm} (Confidence {(confidence * 100):F0}%)";
+	}
+
+	private static int SuggestBreakMinutes(TimeOnly start, TimeOnly end)
+	{
+		var duration = end.ToTimeSpan() - start.ToTimeSpan();
+		if (duration.TotalHours >= 9)
+		{
+			return 45;
+		}
+
+		if (duration.TotalHours >= 6)
+		{
+			return 30;
+		}
+
+		return 15;
+	}
+
+	private void RebuildPatternSnapshot()
+	{
+		patterns.Clear();
+		foreach (var day in Enum.GetValues<DayOfWeek>())
+		{
+			var pattern = LearningService.GetPattern(day);
+			if (pattern is not null)
+			{
+				patterns.Add(pattern);
+			}
+		}
+	}
+}

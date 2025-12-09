@@ -1,0 +1,143 @@
+@page "/settings"
+@inject ISettingsService SettingsService
+@inject INotificationService NotificationService
+
+@if (model is null)
+{
+    <p>Lade Einstellungen…</p>
+}
+else
+{
+    <section class="grid">
+        <article class="card">
+            <header>
+                <h2>Reminder</h2>
+                <p class="muted">Steuere Push-Reminder und Lead-Zeit.</p>
+            </header>
+            <label class="toggle">
+                <input type="checkbox" @bind="model.ReminderEnabled" />
+                <span>Aktiv</span>
+            </label>
+            <div class="form-row">
+                <label>Bevorzugte Zeit
+                    <input type="time" @bind="preferredTime" />
+                </label>
+                <label>Lead (Min.)
+                    <input type="number" min="0" max="180" @bind="model.LeadMinutes" />
+                </label>
+            </div>
+        </article>
+
+        <article class="card">
+            <header>
+                <h2>Lernparameter</h2>
+                <p class="muted">Feineinstellung der Glättung.</p>
+            </header>
+            <label>Alpha
+                <input type="number" step="0.05" min="0.1" max="0.9" @bind="model.Alpha" />
+            </label>
+        </article>
+
+        <article class="card">
+            <header>
+                <h2>Integrationen</h2>
+            </header>
+            <label>PersonioBridge URL
+                <input type="url" @bind="model.PersonioBridgeUrl" />
+            </label>
+            <label class="toggle">
+                <input type="checkbox" @bind="model.AutoSubmit" />
+                <span>Automatisch an Personio senden</span>
+            </label>
+            <label class="toggle">
+                <input type="checkbox" @bind="model.PushOptIn" />
+                <span>Push-Benachrichtigungen</span>
+            </label>
+        </article>
+    </section>
+
+    <button class="primary" @onclick="SaveAsync">Speichern</button>
+}
+
+@if (!string.IsNullOrEmpty(notification))
+{
+    <p class="muted">@notification</p>
+}
+
+@code {
+    private SettingsForm? model;
+    private TimeOnly? preferredTime = new TimeOnly(8, 30);
+    private string? notification;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await SettingsService.GetAsync();
+        model = new SettingsForm
+        {
+            ReminderEnabled = state.Reminder.Enabled,
+            LeadMinutes = state.Reminder.LeadMinutes,
+            Alpha = state.Alpha,
+            PersonioBridgeUrl = state.PersonioBridgeUrl.ToString(),
+            PushOptIn = state.PushOptIn,
+            AutoSubmit = state.AutoSubmitToPersonio
+        };
+        preferredTime = state.Reminder.PreferredTime;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (model is null)
+        {
+            return;
+        }
+
+        if (preferredTime is not TimeOnly preferred)
+        {
+            notification = "Ungültige Uhrzeit";
+            return;
+        }
+        var time = preferred;
+
+        model.Alpha = Math.Clamp(model.Alpha, 0.1, 0.9);
+        model.LeadMinutes = Math.Clamp(model.LeadMinutes, 0, 180);
+
+        if (!Uri.TryCreate(model.PersonioBridgeUrl, UriKind.Absolute, out var bridgeUri))
+        {
+            notification = "Ungültige URL";
+            return;
+        }
+
+        var reminder = new ReminderPreference
+        {
+            Enabled = model.ReminderEnabled,
+            PreferredTime = time,
+            LeadMinutes = model.LeadMinutes
+        };
+
+        var newState = new SettingsState(
+            reminder,
+            model.Alpha,
+            bridgeUri,
+            model.PushOptIn,
+            model.AutoSubmit);
+
+        await SettingsService.SaveAsync(newState);
+
+        if (model.PushOptIn)
+        {
+            await NotificationService.RegisterPushSubscriptionAsync("resteleven-client");
+        }
+
+        notification = "Gespeichert.";
+    }
+
+    private class SettingsForm
+    {
+        public bool ReminderEnabled { get; set; }
+        public int LeadMinutes { get; set; } = 15;
+        public double Alpha { get; set; } = 0.3;
+        public string PersonioBridgeUrl { get; set; } = string.Empty;
+        public bool PushOptIn { get; set; }
+        public bool AutoSubmit { get; set; }
+    }
+}

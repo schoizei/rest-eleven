@@ -1,0 +1,147 @@
+@page "/history"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@inject ILocalDbService LocalDb
+@inject ILearningService LearningService
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Verlauf</p>
+        <h1>Zeiteinträge & Lernmuster</h1>
+        <p class="muted">Filtere nach Zeitraum oder Wochentag, um Auffälligkeiten zu erkennen.</p>
+    </div>
+</section>
+
+<section class="card filter-panel">
+    <div class="filters">
+        <label>
+            Zeitraum von
+            <input type="date" @bind="fromValue" />
+        </label>
+        <label>
+            bis
+            <input type="date" @bind="toValue" />
+        </label>
+        <label>
+            Wochentag
+            <select @bind="weekdayValue">
+                <option value="">Alle</option>
+                @foreach (var day in Enum.GetValues<DayOfWeek>())
+                {
+                    <option value="@day">@day</option>
+                }
+            </select>
+        </label>
+        <button class="primary ghost" @onclick="ApplyFilters">Anwenden</button>
+    </div>
+</section>
+
+<section class="grid">
+    <article class="card">
+        <header>
+            <h2>Gefilterte Einträge</h2>
+            <small>@filteredEntries.Count von @allEntries.Count</small>
+        </header>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Wochentag</th>
+                    <th>Start</th>
+                    <th>Ende</th>
+                    <th>Pause</th>
+                    <th>Kommentar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in filteredEntries)
+                {
+                    <tr>
+                        <td>@entry.Date.ToString("dd.MM.yyyy")</td>
+                        <td>@entry.Date.DayOfWeek</td>
+                        <td>@entry.Start.ToString("HH\\:mm")</td>
+                        <td>@entry.End.ToString("HH\\:mm")</td>
+                        <td>@entry.BreakMinutes min</td>
+                        <td>@(entry.Comment ?? "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </article>
+
+    <article class="card">
+        <header>
+            <h2>Muster pro Wochentag</h2>
+        </header>
+        <ul class="stat-list">
+            @foreach (var pattern in weekdayPatterns)
+            {
+                <li>
+                    <span>@pattern.Weekday</span>
+                    <strong>@pattern.AvgStart.ToString("HH\\:mm") &ndash; @pattern.AvgEnd.ToString("HH\\:mm")</strong>
+                    <small>@pattern.Confidence.ToString("P0") · @pattern.Samples Samples</small>
+                </li>
+            }
+        </ul>
+    </article>
+</section>
+
+@code {
+    private readonly List<AttendanceEntry> allEntries = new();
+    private readonly List<AttendanceEntry> filteredEntries = new();
+    private readonly List<LearnedPattern> weekdayPatterns = new();
+    private DateTime? fromValue;
+    private DateTime? toValue;
+    private string? weekdayValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LocalDb.InitializeAsync();
+        var since = DateOnly.FromDateTime(DateTime.Today.AddDays(-60));
+        var data = await LocalDb.GetEntriesAsync(since);
+        allEntries.AddRange(data);
+        filteredEntries.AddRange(allEntries);
+
+        weekdayPatterns.Clear();
+        foreach (var entry in allEntries.OrderBy(e => e.Date).ThenBy(e => e.Start))
+        {
+            LearningService.UpdatePattern(entry);
+        }
+
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+        {
+            var pattern = LearningService.GetPattern(day);
+            if (pattern is not null)
+            {
+                weekdayPatterns.Add(pattern);
+            }
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        await Task.Yield();
+        IEnumerable<AttendanceEntry> query = allEntries;
+
+        if (fromValue is DateTime fromDate)
+        {
+            var from = DateOnly.FromDateTime(fromDate);
+            query = query.Where(entry => entry.Date >= from);
+        }
+
+        if (toValue is DateTime toDate)
+        {
+            var to = DateOnly.FromDateTime(toDate);
+            query = query.Where(entry => entry.Date <= to);
+        }
+
+        if (!string.IsNullOrWhiteSpace(weekdayValue) && Enum.TryParse<DayOfWeek>(weekdayValue, out var day))
+        {
+            query = query.Where(entry => entry.Date.DayOfWeek == day);
+        }
+
+        filteredEntries.Clear();
+        filteredEntries.AddRange(query.OrderByDescending(e => e.Date));
+    }
+
+}

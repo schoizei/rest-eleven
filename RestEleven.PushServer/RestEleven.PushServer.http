@@ -1,0 +1,6 @@
+@RestEleven.PushServer_HostAddress = http://localhost:5225
+
+GET {{RestEleven.PushServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

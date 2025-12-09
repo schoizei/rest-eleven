@@ -1,0 +1,6 @@
+@RestEleven.PersonioBridge_HostAddress = http://localhost:5137
+
+GET {{RestEleven.PersonioBridge_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
