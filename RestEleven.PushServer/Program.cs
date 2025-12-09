@@ -54,7 +54,6 @@ public static class Program
             app.UseSwaggerUI();
         }
 
-        app.UseHttpsRedirection();
         app.UseRouting();
         app.UseCors("Client");
         app.UseAuthorization();
