@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RestEleven.PushServer.Services;
@@ -8,6 +9,7 @@ namespace RestEleven.PushServer.Controllers;
 
 [ApiController]
 [Route("push")]
+[Authorize]
 public partial class PushController : ControllerBase
 {
     private readonly IPushSubscriptionStore _store;

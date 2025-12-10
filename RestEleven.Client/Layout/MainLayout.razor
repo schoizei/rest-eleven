@@ -1,7 +1,10 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+
+<button class="menu-toggle" @onclick="ToggleMenu" aria-label="Menü öffnen">☰</button>
+<div class="mobile-overlay @(menuOpen ? "active" : "")" @onclick="CloseMenu"></div>
 
 <div class="app-shell">
-    <aside class="rail">
+    <aside class="rail @(menuOpen ? "open" : "")">
         <div class="brand">
             <div class="logo">11</div>
             <div>
@@ -9,7 +12,7 @@
                 <small>Stay rested.</small>
             </div>
         </div>
-        <NavMenu />
+        <NavMenu OnNavigated="CloseMenu" />
     </aside>
 
     <div class="workspace">
@@ -18,10 +21,28 @@
                 <p class="eyebrow">Heute</p>
                 <strong>@DateTime.Now.ToString("dddd, dd. MMM", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))</strong>
             </div>
-            <span class="status-dot">PWA aktiv</span>
+            <div class="auth-chip">
+                <AuthorizeView>
+                    <Authorized Context="authState">
+                        <span>@authState.User.Identity?.Name</span>
+                        <a href="authentication/logout" class="link-muted">Abmelden</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="primary" href="authentication/login">Anmelden</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
         </header>
         <main class="content">
             @Body
         </main>
     </div>
 </div>
+
+@code {
+    private bool menuOpen;
+
+    private void ToggleMenu() => menuOpen = !menuOpen;
+
+    private void CloseMenu() => menuOpen = false;
+}

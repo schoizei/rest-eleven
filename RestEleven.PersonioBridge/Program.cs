@@ -1,4 +1,5 @@
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Extensions.Http;
@@ -19,17 +20,13 @@ public static class Program
         builder.Services.AddHttpClient<IPersonioClient, PersonioClient>()
             .AddPolicyHandler(GetRetryPolicy());
 
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+        builder.Services.AddAuthorization();
+
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "RestEleven Personio Bridge",
-                Version = "v1",
-                Description = "Serverseitige Brücke zur Personio Attendance API"
-            });
-        });
+        builder.Services.AddSwaggerGen();
 
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
         builder.Services.AddCors(policy =>
@@ -59,6 +56,7 @@ public static class Program
 
         app.UseRouting();
         app.UseCors("Client");
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();

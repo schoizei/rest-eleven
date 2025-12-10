@@ -1,11 +1,23 @@
-﻿<nav class="nav-links">
-    <NavLink href="" Match="NavLinkMatch.All">
+@inject NavigationManager NavigationManager
+
+<nav class="nav-links">
+    <NavLink href="" Match="NavLinkMatch.All" @onclick="HandleNavigation">
         <span>Übersicht</span>
     </NavLink>
-    <NavLink href="history">
+    <NavLink href="history" @onclick="HandleNavigation">
         <span>Verlauf</span>
     </NavLink>
-    <NavLink href="settings">
+    <NavLink href="settings" @onclick="HandleNavigation">
         <span>Einstellungen</span>
     </NavLink>
 </nav>
+
+@code {
+    [Parameter]
+    public EventCallback OnNavigated { get; set; }
+
+    private async Task HandleNavigation()
+    {
+        await OnNavigated.InvokeAsync();
+    }
+}

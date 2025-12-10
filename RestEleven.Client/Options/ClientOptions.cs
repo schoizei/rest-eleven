@@ -5,6 +5,8 @@ public class ClientOptions
     public Uri PushServerBaseUrl { get; set; } = new("https://localhost:7100");
     public Uri PersonioBridgeBaseUrl { get; set; } = new("https://localhost:7200");
     public string VapidPublicKey { get; set; } = string.Empty;
+    public string[] PushServerScopes { get; set; } = Array.Empty<string>();
+    public string[] PersonioBridgeScopes { get; set; } = Array.Empty<string>();
     public ReminderDefaults ReminderDefaults { get; set; } = new();
 }
 

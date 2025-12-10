@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RestEleven.PersonioBridge.Services;
@@ -7,6 +8,7 @@ namespace RestEleven.PersonioBridge.Controllers;
 
 [ApiController]
 [Route("personio")]
+[Authorize]
 public partial class AttendanceController : ControllerBase
 {
     private readonly IPersonioClient _client;

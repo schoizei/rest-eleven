@@ -298,3 +298,153 @@ input, select, textarea {
 .loading-progress circle:last-child {
     stroke: var(--accent);
 }
+
+/* ========== Mobile Responsive ========== */
+
+/* Hamburger menu toggle button */
+.menu-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Mobile overlay for sidebar */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: flex;
+    }
+
+    .mobile-overlay.active {
+        display: block;
+    }
+
+    .rail {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        z-index: 1000;
+        width: 260px;
+        transition: left 0.3s ease;
+        background: var(--bg-alt);
+    }
+
+    .rail.open {
+        left: 0;
+    }
+
+    .workspace {
+        padding: 1rem;
+        padding-top: 4.5rem;
+    }
+
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .auth-chip {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .hero-panel {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .hero-panel h1 {
+        font-size: 1.6rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .card {
+        padding: 1rem;
+    }
+
+    .data-table {
+        font-size: 0.85rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.4rem 0.25rem;
+    }
+
+    /* Horizontally scrollable table on very small screens */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .filters label {
+        width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+
+    .primary {
+        width: 100%;
+        text-align: center;
+    }
+
+    .stat-list strong {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .workspace {
+        padding: 0.75rem;
+        padding-top: 4rem;
+    }
+
+    .hero-panel h1 {
+        font-size: 1.3rem;
+    }
+
+    .card h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Hide less important columns on very small screens */
+    .data-table .hide-mobile {
+        display: none;
+    }
+}

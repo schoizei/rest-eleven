@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @inject ILocalDbService LocalDb
 @inject ILearningService LearningService
 @inject INotificationService NotificationService
@@ -49,7 +49,7 @@
 						<th>Datum</th>
 						<th>Start</th>
 						<th>Ende</th>
-						<th>Pause</th>
+						<th class="hide-mobile">Pause</th>
 						<th>Kommentar</th>
 					</tr>
 				</thead>
@@ -60,8 +60,8 @@
 							<td>@entry.Date.ToString("ddd, dd.MM.")</td>
 							<td>@entry.Start.ToString("HH\\:mm")</td>
 							<td>@entry.End.ToString("HH\\:mm")</td>
-							<td>@entry.BreakMinutes min</td>
-							<td>@(entry.Comment ?? "-")</td>
+							<td class="hide-mobile">@entry.BreakMinutes min</td>
+							<td class="hide-mobile">@(entry.Comment ?? "-")</td>
 						</tr>
 					}
 				</tbody>

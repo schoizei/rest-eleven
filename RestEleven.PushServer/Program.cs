@@ -1,4 +1,5 @@
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 using RestEleven.PushServer.Options;
 using RestEleven.PushServer.Services;
 
@@ -14,18 +15,15 @@ public static class Program
         builder.Services.AddSingleton<IPushSubscriptionStore, PushSubscriptionStore>();
         builder.Services.AddSingleton<IWebPushService, WebPushService>();
         builder.Services.AddSingleton<WebPush.WebPushClient>();
+        builder.Services.AddSingleton<IUserSettingsStore, FileUserSettingsStore>();
+
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+        builder.Services.AddAuthorization();
 
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "RestEleven Push Server",
-                Version = "v1",
-                Description = "Verwaltet Browser-Subscriptions und sendet Web-Push-Nachrichten."
-            });
-        });
+        builder.Services.AddSwaggerGen();
 
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
         builder.Services.AddCors(policy =>
@@ -56,6 +54,7 @@ public static class Program
 
         app.UseRouting();
         app.UseCors("Client");
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();
