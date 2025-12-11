@@ -19,7 +19,14 @@ public class BackgroundSyncService : IBackgroundSyncService
             return;
         }
 
-        await _jsRuntime.InvokeVoidAsync("resteleven.sync.register", cancellationToken, tag);
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync("resteleven.sync.register", cancellationToken, tag);
+        }
+        catch (JSException)
+        {
+            // Swallow JS permission errors so the UI can still render.
+        }
     }
 
     public async Task<bool> IsSupportedAsync(CancellationToken cancellationToken = default)

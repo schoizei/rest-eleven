@@ -48,6 +48,12 @@ resteleven.notifications = {
         };
     },
     show: async ({ title, body, url }) => {
+        const permission = await resteleven.notifications.ensurePermission();
+        if (permission !== 'granted') {
+            console.warn('Notification permission not granted, skipping notification');
+            return;
+        }
+
         const registration = await navigator.serviceWorker.ready;
         if (registration.showNotification) {
             await registration.showNotification(title, {
@@ -56,6 +62,9 @@ resteleven.notifications = {
                 data: { url }
             });
         } else {
+            // Fallback in page context
+            // At this point permission is granted, so this should succeed.
+            // Browsers may still route this via the service worker depending on implementation.
             new Notification(title, { body });
         }
     },
